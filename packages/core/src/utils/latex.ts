@@ -362,14 +362,52 @@ export function hasLatexFormula(content: string): boolean {
 export async function initMathJax(config?: any): Promise<void> {
   if (typeof window === 'undefined') return;
 
-  // 先移除所有旧的MathJax脚本，避免冲突
-  document.querySelectorAll('script[src*="mathjax"]').forEach(s => s.remove());
-  // 彻底清理全局MathJax对象，避免只读属性报错
-  if (window.MathJax) delete window.MathJax;
-
-  // 如果MathJax已经加载并且可用，直接返回
+  // 如果MathJax已经加载并且可用，直接返回（避免删除已加载的本地MathJax）
   if (window.MathJax?.tex2svgPromise) {
+    // 合并用户配置（如果提供）
+    if (config && window.MathJax) {
+      window.MathJax = { ...window.MathJax, ...config };
+    }
     return;
+  }
+
+  // 检查是否有本地MathJax脚本正在加载（避免删除本地脚本）
+  const existingScript = document.querySelector('script[src*="mathjax"]') as HTMLScriptElement | null;
+  if (existingScript) {
+    const scriptSrc = existingScript.src || '';
+    // 如果是本地脚本（不是CDN），等待初始化完成
+    if (scriptSrc.includes('/mathjax/') || scriptSrc.startsWith('/') || scriptSrc.startsWith('./') || scriptSrc.startsWith('../') || !scriptSrc.includes('http')) {
+      // 等待MathJax初始化完成
+      let retries = 0;
+      const maxRetries = 100; // 最多等待10秒
+      while (!window.MathJax?.tex2svgPromise && retries < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        retries++;
+      }
+      if (window.MathJax?.tex2svgPromise) {
+        // 合并用户配置（如果提供）
+        if (config && window.MathJax) {
+          window.MathJax = { ...window.MathJax, ...config };
+        }
+        return;
+      }
+      // 如果等待超时，抛出错误而不是尝试从CDN加载
+      throw new Error('Local MathJax script found but initialization timeout. Please check the script path and ensure it loads correctly.');
+    }
+  }
+
+  // 只有在MathJax不可用且没有本地脚本时才清理和重新加载
+  // 先移除所有旧的CDN MathJax脚本（保留本地脚本）
+  document.querySelectorAll('script[src*="mathjax"]').forEach(s => {
+    const src = (s as HTMLScriptElement).src || '';
+    // 只删除CDN脚本，保留本地脚本
+    if (src.includes('cdn.') || src.includes('unpkg.com') || src.includes('jsdelivr.net') || src.includes('cdnjs.cloudflare.com')) {
+      s.remove();
+    }
+  });
+  // 彻底清理全局MathJax对象，避免只读属性报错（但只在没有本地脚本时）
+  if (!existingScript || (existingScript as HTMLScriptElement).src?.includes('cdn.')) {
+    if (window.MathJax) delete window.MathJax;
   }
 
   // 配置MathJax - 必须在加载脚本之前设置
@@ -497,15 +535,54 @@ export async function loadMathJax(
     throw new Error('MathJax can only be loaded in browser environment');
   }
 
-  // 加载前移除所有旧的MathJax脚本，避免冲突
-  document.querySelectorAll('script[src*="mathjax"]').forEach(s => s.remove());
-  // 彻底清理全局MathJax对象，避免只读属性报错
-  if (window.MathJax) delete window.MathJax;
-
-  // 检查是否已经有MathJax脚本
-  const existingScript = document.querySelector(`script[src*="mathjax"]`);
-  if (existingScript) {
+  // 如果MathJax已经加载并且可用，直接返回（避免删除已加载的本地MathJax）
+  if (window.MathJax?.tex2svgPromise) {
     return;
+  }
+
+  // 检查是否已经有MathJax脚本标签（即使对象还未完全初始化）
+  const existingScript = document.querySelector(`script[src*="mathjax"]`) as HTMLScriptElement | null;
+  if (existingScript) {
+    const scriptSrc = existingScript.src || '';
+    // 如果是本地脚本（不是CDN），等待初始化完成，不要尝试从CDN加载
+    if (scriptSrc.includes('/mathjax/') || scriptSrc.startsWith('/') || scriptSrc.startsWith('./') || scriptSrc.startsWith('../') || !scriptSrc.includes('http')) {
+      // 等待MathJax初始化完成
+      let retries = 0;
+      const maxRetries = 100; // 最多等待10秒
+      while (!window.MathJax?.tex2svgPromise && retries < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        retries++;
+      }
+      if (window.MathJax?.tex2svgPromise) {
+        return;
+      }
+      // 如果等待超时，抛出错误而不是尝试从CDN加载
+      throw new Error('Local MathJax script found but initialization timeout. Please check the script path and ensure it loads correctly.');
+    }
+    // 如果是CDN脚本，也等待一下，可能还在加载中
+    let retries = 0;
+    const maxRetries = 50; // 最多等待5秒
+    while (!window.MathJax?.tex2svgPromise && retries < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      retries++;
+    }
+    if (window.MathJax?.tex2svgPromise) {
+      return;
+    }
+  }
+
+  // 只有在MathJax不可用且没有本地脚本时才清理和重新加载
+  // 加载前移除所有旧的CDN MathJax脚本（保留本地脚本）
+  document.querySelectorAll('script[src*="mathjax"]').forEach(s => {
+    const src = (s as HTMLScriptElement).src || '';
+    // 只删除CDN脚本，保留本地脚本
+    if (src.includes('cdn.') || src.includes('unpkg.com') || src.includes('jsdelivr.net') || src.includes('cdnjs.cloudflare.com')) {
+      s.remove();
+    }
+  });
+  // 彻底清理全局MathJax对象，避免只读属性报错（但只在没有本地脚本时）
+  if (!existingScript || existingScript.src?.includes('cdn.')) {
+    if (window.MathJax) delete window.MathJax;
   }
 
   // 跳过polyfill加载，现代浏览器通常不需要

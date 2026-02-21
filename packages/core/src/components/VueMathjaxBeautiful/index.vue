@@ -1,7 +1,7 @@
 <template>
-  <!-- 内联模式 -->
+  <!-- 内联模式：仅当 displayMode 为 'inline' 时显示，避免在弹窗场景下误显示 -->
   <div
-    v-if="inlineMode"
+    v-if="effectiveDisplayMode === 'inline'"
     class="vue-mathjax-beautiful-inline"
     :class="{ 'theme-dark': internalTheme === 'dark', 'theme-light': internalTheme === 'light' }"
     :style="customThemeVars"
@@ -160,11 +160,11 @@
     </div>
   </div>
 
-  <!-- 弹窗模式 -->
+  <!-- 弹窗模式：仅当 displayMode 为 'dialog' 且 visible 时显示 -->
   <Teleport to="body">
   <Transition name="overlay" appear>
     <div
-      v-if="visible"
+      v-if="effectiveDisplayMode === 'dialog' && visible"
       class="vue-mathjax-beautiful-overlay"
       :class="{ 'theme-dark': internalTheme === 'dark', 'theme-light': internalTheme === 'light', 'show': visible }"
       @click="handleOverlayClick"
@@ -397,6 +397,8 @@ const props = withDefaults(
     modelValue?: boolean;
     existingLatex?: string;
     inlineMode?: boolean;
+    /** 编辑器显示模式：'inline' 内嵌显示，'dialog' 弹窗显示。当使用 v-model 控制弹窗时请传 'dialog'，避免内嵌编辑器误显示 */
+    displayMode?: 'inline' | 'dialog';
     
     // 主题和样式
     theme?: string;
@@ -441,6 +443,7 @@ const props = withDefaults(
     modelValue: false,
     existingLatex: '',
     inlineMode: false,
+    displayMode: undefined as 'inline' | 'dialog' | undefined,
     theme: 'light',
     themeConfig: (): ThemeConfig => ({
       light: {
@@ -524,6 +527,14 @@ const reactiveFormulaExamples = ref([...formulaExamples]);
 // 计算属性
 const filteredCategories = computed(() => {
   return categories.filter(category => props.enabledCategories.includes(category.key));
+});
+
+// 有效显示模式：显式传入 displayMode 时使用，否则根据 inlineMode 推断（向后兼容）
+const effectiveDisplayMode = computed(() => {
+  if (props.displayMode !== undefined) {
+    return props.displayMode;
+  }
+  return props.inlineMode ? 'inline' : 'dialog';
 });
 
 const currentSymbols = computed(() => {

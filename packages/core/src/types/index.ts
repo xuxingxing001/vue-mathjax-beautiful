@@ -34,6 +34,8 @@ export interface VueMathjaxBeautifulProps {
   modelValue?: boolean;
   existingLatex?: string;
   inlineMode?: boolean;
+  /** 编辑器显示模式：'inline' 内嵌显示，'dialog' 弹窗显示 */
+  displayMode?: 'inline' | 'dialog';
   
   // 主题和样式
   theme?: 'light' | 'dark' | string;
