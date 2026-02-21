@@ -42,6 +42,7 @@ pnpm add vue-mathjax-beautiful
     <!-- 公式编辑器弹窗 -->
     <VueMathjaxBeautiful
       v-model="showDialog"
+      display-mode="dialog"
       :existing-latex="formula"
       title="数学公式编辑器"
       @insert="handleInsert"
@@ -106,6 +107,15 @@ app.mount('#app')
 
 ### VueMathjaxBeautiful (公式编辑器)
 
+#### 显示模式说明
+
+组件支持两种显示模式，通过 `display-mode` 属性控制：
+
+- **`display-mode="dialog"`**（弹窗模式）：编辑器在弹窗中显示，通过 `v-model` 控制显示/隐藏。适合需要按需弹出的场景。
+- **`display-mode="inline"`**（内嵌模式）：编辑器直接嵌入到页面中，始终可见。适合需要持续编辑的场景。
+
+> **注意**：当使用 `v-model` 控制弹窗时，务必设置 `display-mode="dialog"`，避免内嵌编辑器误显示。`inline-mode` 属性已废弃但保留兼容，推荐使用 `display-mode`。
+
 #### Props
 
 | 属性名 | 类型 | 默认值 | 说明 |
@@ -114,7 +124,8 @@ app.mount('#app')
 | `title` | `string` | `"公式编辑器"` | 弹窗标题文字 |
 | `subtitle` | `string` | `""` | 弹窗副标题文字 |
 | `placeholder` | `string` | `""` | 输入框占位符文本 |
-| `inline-mode` | `boolean` | `false` | 是否启用内联模式 |
+| `inline-mode` | `boolean` | `false` | 是否启用内联模式（已废弃，推荐使用 `display-mode`） |
+| `display-mode` | `'inline' \| 'dialog'` | `undefined` | 编辑器显示模式：`'inline'` 内嵌显示，`'dialog'` 弹窗显示。当使用 `v-model` 控制弹窗时请传 `'dialog'`，避免内嵌编辑器误显示 |
 | `existing-latex` | `string` | `""` | 预设的LaTeX代码 |
 | `show-theme-toggle` | `boolean` | `true` | 是否显示主题切换按钮 |
 
@@ -269,6 +280,7 @@ interface Category {
     <!-- 公式编辑器弹窗 -->
     <VueMathjaxBeautiful
       v-model="showFormulaDialog"
+      display-mode="dialog"
       :existing-latex="selectedFormula"
       title="高级公式编辑器"
       @insert="handleFormulaInsert"

@@ -55,6 +55,7 @@ pnpm add vue-mathjax-beautiful
     <!-- 公式编辑器弹窗 -->
     <VueMathjaxBeautiful
       v-model="showDialog"
+      display-mode="dialog"
       :existing-latex="formula"
       @insert="handleInsert"
     />
@@ -91,7 +92,7 @@ const handleInsert = (latex) => {
   <div>
     <!-- 直接嵌入页面的公式编辑器 -->
     <VueMathjaxBeautiful
-      :inline-mode="true"
+      display-mode="inline"
       :existing-latex="formula"
       @insert="handleInsert"
     />
@@ -118,9 +119,9 @@ const handleInsert = (latex) => {
 ```vue
 <template>
   <div class="editor-container">
-    <!-- 公式编辑器 -->
+    <!-- 公式编辑器（内嵌模式） -->
     <VueMathjaxBeautiful
-      :inline-mode="true"
+      display-mode="inline"
       :existing-latex="currentFormula"
       @insert="handleFormulaInsert"
     />
@@ -134,6 +135,7 @@ const handleInsert = (latex) => {
     <!-- 公式编辑器弹窗 -->
     <VueMathjaxBeautiful
       v-model="showDialog"
+      display-mode="dialog"
       :existing-latex="currentFormula"
       @insert="insertFormula"
     />
@@ -225,7 +227,8 @@ const clearFormula = () => {
 |------|------|--------|------|
 | `v-model` | `boolean` | `false` | 控制弹窗显示/隐藏（弹窗模式） |
 | `existing-latex` | `string` | `''` | 已有的 LaTeX 公式代码 |
-| `inline-mode` | `boolean` | `false` | 是否启用内联模式 |
+| `inline-mode` | `boolean` | `false` | 是否启用内联模式（已废弃，推荐使用 `display-mode`） |
+| `display-mode` | `'inline' \| 'dialog'` | `undefined` | 编辑器显示模式：`'inline'` 内嵌显示，`'dialog'` 弹窗显示。当使用 `v-model` 控制弹窗时请传 `'dialog'`，避免内嵌编辑器误显示 |
 
 #### Events
 
@@ -239,7 +242,7 @@ const clearFormula = () => {
 - **公式模板**：38 个常用数学公式模板，涵盖代数、几何、微积分等领域
 - **实时预览**：输入 LaTeX 代码时实时显示渲染效果
 - **智能插入**：点击符号自动插入到光标位置
-- **双模式支持**：支持弹窗模式和内联模式
+- **双模式支持**：支持弹窗模式（`display-mode="dialog"`）和内联模式（`display-mode="inline"`）
 
 
 
@@ -494,6 +497,40 @@ const showFormulaHelp = () => {
 ```
 
 ## ❓ 常见问题
+
+### Q: `display-mode` 和 `inline-mode` 有什么区别？
+
+A: `display-mode` 是新增的属性，用于明确控制编辑器的显示模式，推荐使用：
+
+- **`display-mode="dialog"`**：弹窗模式，编辑器在弹窗中显示，通过 `v-model` 控制显示/隐藏。适合需要按需弹出的场景。
+- **`display-mode="inline"`**：内嵌模式，编辑器直接嵌入到页面中，始终可见。适合需要持续编辑的场景。
+
+**`inline-mode` 属性**（已废弃但保留兼容）：
+- 原本用于控制显示模式，但容易与公式类型（行内公式 vs 块级公式）混淆
+- 当 `display-mode` 未设置时，会根据 `inline-mode` 推断显示模式（向后兼容）
+- **建议**：使用 `v-model` 控制弹窗时，务必设置 `display-mode="dialog"`，避免内嵌编辑器误显示
+
+**示例**：
+```vue
+<!-- ✅ 推荐：明确指定显示模式 -->
+<VueMathjaxBeautiful
+  v-model="showDialog"
+  display-mode="dialog"
+  @insert="handleInsert"
+/>
+
+<!-- ✅ 推荐：内嵌模式 -->
+<VueMathjaxBeautiful
+  display-mode="inline"
+  @insert="handleInsert"
+/>
+
+<!-- ⚠️ 不推荐：使用已废弃的 inline-mode -->
+<VueMathjaxBeautiful
+  :inline-mode="true"
+  @insert="handleInsert"
+/>
+```
 
 ### Q: 如何插入复杂的数学公式？
 
